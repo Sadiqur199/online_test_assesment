@@ -1,7 +1,7 @@
 // pages/employer/CreateTest.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useExamStore } from '../../store/useExamStore';
+import { useExamStore, PREDEFINED_TEST_IDS } from '../../store/useExamStore';
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -25,6 +25,7 @@ export default function CreateTest() {
     endTime: '',
     duration: '',
   });
+  const [selectedTestIds, setSelectedTestIds] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,6 +38,14 @@ export default function CreateTest() {
 
   const handleBasicChange = (e) => {
     setBasicInfo({ ...basicInfo, [e.target.name]: e.target.value });
+  };
+
+  const handleTestIdToggle = (testId) => {
+    setSelectedTestIds(prev => 
+      prev.includes(testId) 
+        ? prev.filter(id => id !== testId)
+        : [...prev, testId]
+    );
   };
 
   const openModal = (question = null) => {
@@ -119,6 +128,10 @@ export default function CreateTest() {
       alert('Please enter test title');
       return;
     }
+    if (selectedTestIds.length === 0) {
+      alert('Please select at least one Test ID for this exam');
+      return;
+    }
     if (questions.length === 0) {
       alert('Please add at least one question');
       return;
@@ -134,6 +147,7 @@ export default function CreateTest() {
       startTime: basicInfo.startTime,
       endTime: basicInfo.endTime,
       duration: basicInfo.duration,
+      authorizedTestIds: selectedTestIds,
       questions: questions,
     });
     alert('Exam Created Successfully!');
@@ -162,6 +176,11 @@ export default function CreateTest() {
             <div className="w-16 h-0.5 bg-gray-200"></div>
             <div className={`flex items-center gap-2 ${step === 2 ? 'text-indigo-600' : 'text-gray-400'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${step === 2 ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>2</div>
+              <span>Test IDs</span>
+            </div>
+            <div className="w-16 h-0.5 bg-gray-200"></div>
+            <div className={`flex items-center gap-2 ${step === 3 ? 'text-indigo-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${step === 3 ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>3</div>
               <span>Questions</span>
             </div>
           </div>
@@ -179,6 +198,12 @@ export default function CreateTest() {
               <button
                 onClick={() => setStep(2)}
                 className={`pb-2 font-medium ${step === 2 ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}
+              >
+                Authorized Test IDs
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                className={`pb-2 font-medium ${step === 3 ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500'}`}
               >
                 Questions List
               </button>
@@ -287,6 +312,51 @@ export default function CreateTest() {
 
             {step === 2 && (
               <div>
+                <h3 className="text-lg font-medium mb-4">Select Authorized Test IDs</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Select which candidate Test IDs can access this exam. Only candidates with these IDs will be able to see and take this test.
+                </p>
+                
+                <div className="space-y-3">
+                  {PREDEFINED_TEST_IDS.map((testId) => (
+                    <label key={testId.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedTestIds.includes(testId.id)}
+                        onChange={() => handleTestIdToggle(testId.id)}
+                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      />
+                      <div className="ml-3">
+                        <p className="font-medium text-gray-800">Test ID: {testId.id}</p>
+                        <p className="text-sm text-gray-500">{testId.name}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                {selectedTestIds.length > 0 && (
+                  <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
+                    <p className="text-sm text-indigo-800">
+                      ✓ {selectedTestIds.length} Test ID(s) selected for this exam
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-6 border-t mt-6">
+                  <button onClick={() => setStep(1)} className="px-6 py-2 border rounded-lg hover:bg-gray-50">Back</button>
+                  <button 
+                    onClick={() => setStep(3)} 
+                    disabled={selectedTestIds.length === 0}
+                    className={`px-6 py-2 rounded-lg font-medium ${selectedTestIds.length > 0 ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                  >
+                    Continue to Questions
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div>
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-medium">Questions List</h3>
                   <button onClick={() => openModal()} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm">
@@ -339,7 +409,7 @@ export default function CreateTest() {
                 )}
 
                 <div className="flex justify-between pt-6 border-t mt-6">
-                  <button onClick={() => setStep(1)} className="px-6 py-2 border rounded-lg hover:bg-gray-50">Back</button>
+                  <button onClick={() => setStep(2)} className="px-6 py-2 border rounded-lg hover:bg-gray-50">Back</button>
                   <button onClick={handleSubmit} className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">Create Test</button>
                 </div>
               </div>
