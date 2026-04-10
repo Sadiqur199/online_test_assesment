@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useExamStore } from '../../store/useExamStore';
+import { useExamStore, PREDEFINED_TEST_IDS } from '../../store/useExamStore';
 
 export default function CandidateLogin() {
   const [name, setName] = useState('');
@@ -8,24 +8,39 @@ export default function CandidateLogin() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const exams = useExamStore((state) => state.exams);
+  const getExamsByTestId = useExamStore((state) => state.getExamsByTestId);
 
   const handleLogin = (e) => {
     e.preventDefault();
 
-    const examExists = exams.find(
-      (exam) => exam.id.toString() === testId
+    // Check if test ID is in predefined list
+    const isValidTestId = PREDEFINED_TEST_IDS.some(
+      (validId) => validId.id === testId
     );
 
-    if (name && testId && examExists) {
-      localStorage.setItem('candidateAuth', 'true');
-      localStorage.setItem('candidateName', name);
-      localStorage.setItem('currentTestId', testId);
-      navigate('/candidate/dashboard');
-    } else if (!examExists) {
+    if (!isValidTestId) {
       setError('Invalid Test ID. Please check and try again.');
-    } else {
-      setError('Please enter both name and test ID');
+      return;
     }
+
+    if (!name) {
+      setError('Please enter your full name');
+      return;
+    }
+
+    // Check if there are any exams available for this test ID
+    const availableExams = getExamsByTestId(testId);
+    
+    if (availableExams.length === 0) {
+      setError('No exams available for this Test ID. Please contact your administrator.');
+      return;
+    }
+
+    // Store candidate info
+    localStorage.setItem('candidateAuth', 'true');
+    localStorage.setItem('candidateName', name);
+    localStorage.setItem('candidateTestId', testId);
+    navigate('/candidate/dashboard');
   };
 
   return (
@@ -73,6 +88,9 @@ export default function CandidateLogin() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
               required
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Valid Test IDs: 123456789, 0123456788, 987654321, 555666777, 888999000
+            </p>
           </div>
 
           {error && (
