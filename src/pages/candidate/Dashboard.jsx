@@ -1,98 +1,141 @@
 // pages/candidate/Dashboard.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExamStore } from '../../store/useExamStore';
+import { ClockIcon, DocumentTextIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 export default function CandidateDashboard() {
-  const exams = useExamStore((state) => state.exams);
   const navigate = useNavigate();
   const [candidateName, setCandidateName] = useState('');
-  const [availableTests, setAvailableTests] = useState([]);
+  const [candidateTestId, setCandidateTestId] = useState('');
+  const [availableExams, setAvailableExams] = useState([]);
+  const getExamsByTestId = useExamStore((state) => state.getExamsByTestId);
+  const exams = useExamStore((state) => state.exams);
 
   useEffect(() => {
+    // Check authentication
+    const auth = localStorage.getItem('candidateAuth');
     const name = localStorage.getItem('candidateName');
-    const testId = localStorage.getItem('currentTestId');
-    setCandidateName(name || 'Candidate');
-    
-    // Show only the test that matches the candidate's test ID
-    if (testId) {
-      const assignedTest = exams.find(exam => exam.id.toString() === testId);
-      if (assignedTest) {
-        setAvailableTests([assignedTest]);
-      }
+    const testId = localStorage.getItem('candidateTestId');
+
+    if (!auth || !name || !testId) {
+      navigate('/candidate/login');
+      return;
     }
-  }, [exams]);
+
+    setCandidateName(name);
+    setCandidateTestId(testId);
+
+    // Get exams available for this test ID
+    const available = getExamsByTestId(testId);
+    setAvailableExams(available);
+  }, [navigate, getExamsByTestId]);
 
   const handleLogout = () => {
     localStorage.removeItem('candidateAuth');
     localStorage.removeItem('candidateName');
-    localStorage.removeItem('currentTestId');
+    localStorage.removeItem('candidateTestId');
     navigate('/candidate/login');
+  };
+
+  const handleStartExam = (exam) => {
+    // Check if exam is within time window
+    const now = new Date();
+    const startTime = new Date(exam.startTime);
+    const endTime = new Date(exam.endTime);
+
+    if (now < startTime) {
+      alert(`This exam will be available from ${new Date(exam.startTime).toLocaleString()}`);
+      return;
+    }
+
+    if (now > endTime) {
+      alert('This exam has expired. You cannot take it anymore.');
+      return;
+    }
+
+    localStorage.setItem('currentExamId', exam.id);
+    navigate(`/candidate/exam/${exam.id}`);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold text-indigo-700">AKJ RESOURCE</h1>
-          <p className="text-sm text-gray-500">Online Test Platform</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">Welcome, {candidateName}</span>
-          <button onClick={handleLogout} className="text-red-500 text-sm hover:text-red-700">Logout</button>
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">AKJ RESOURCE</h1>
+            <p className="text-sm text-gray-500">Candidate Portal</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-800">{candidateName}</p>
+              <p className="text-xs text-gray-500">Test ID: {candidateTestId}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h2 className="text-xl font-semibold text-gray-800">Your Assigned Tests</h2>
-          </div>
-
-          {availableTests.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <p className="text-gray-500">No tests assigned to you yet.</p>
-              <p className="text-sm text-gray-400 mt-2">Please contact your administrator.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {availableTests.map((exam) => (
-                <div key={exam.id} className="border rounded-lg p-5 hover:shadow-md transition">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-800">{exam.title}</h3>
-                      <div className="mt-2 space-y-1">
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Duration:</span> {exam.duration || '30'} minutes
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Total Questions:</span> {exam.questions?.length || 0}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Question Sets:</span> {exam.questionSets || exam.sets || 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigate(`/exam/${exam.id}`)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition"
-                    >
-                      Start Exam
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800">Welcome, {candidateName}!</h2>
+          <p className="text-gray-600 mt-1">Here are your available tests</p>
         </div>
+
+        {availableExams.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-16">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <DocumentTextIcon className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-800">No Tests Available</h3>
+            <p className="text-gray-500 mt-1">There are no tests assigned to your Test ID.</p>
+            <p className="text-gray-400 text-sm mt-2">Please contact your administrator if you believe this is an error.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {availableExams.map((exam) => (
+              <div
+                key={exam.id}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
+              >
+                <div className="p-6">
+                  <h3 className="font-bold text-lg text-gray-800 mb-3">
+                    {exam.title}
+                  </h3>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <ClockIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>Duration: {exam.duration || 30} minutes</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <DocumentTextIcon className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>Questions: {exam.questions?.length || 0}</span>
+                    </div>
+                    {exam.startTime && (
+                      <div className="text-xs text-gray-500 mt-2">
+                        <p>Available from: {new Date(exam.startTime).toLocaleString()}</p>
+                        <p>Until: {new Date(exam.endTime).toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleStartExam(exam)}
+                    className="w-full flex items-center justify-between bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition"
+                  >
+                    Start Test
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
       <footer className="border-t mt-12 py-6 text-center text-xs text-gray-400">
