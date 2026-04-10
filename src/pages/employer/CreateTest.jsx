@@ -1,4 +1,3 @@
-// pages/employer/CreateTest.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExamStore, PREDEFINED_TEST_IDS } from '../../store/useExamStore';
