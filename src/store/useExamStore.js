@@ -1,10 +1,19 @@
-// store/useExamStore.js - Add this sample exam for testing
+// store/useExamStore.js
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// Predefined candidate test IDs
+export const PREDEFINED_TEST_IDS = [
+  { id: "123456789", name: "Candidate 1" },
+  { id: "0123456788", name: "Candidate 2" },
+  { id: "987654321", name: "Candidate 3" },
+  { id: "555666777", name: "Candidate 4" },
+  { id: "888999000", name: "Candidate 5" }
+];
+
 export const useExamStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       exams: [
         {
           id: 123456,
@@ -16,6 +25,7 @@ export const useExamStore = create(
           duration: 30,
           startTime: "2025-01-01T09:00",
           endTime: "2025-12-31T18:00",
+          authorizedTestIds: ["123456789", "0123456788"], // Which test IDs can access this exam
           questions: [
             {
               id: 1,
@@ -65,6 +75,12 @@ export const useExamStore = create(
         set((state) => ({
           exams: state.exams.filter((exam) => exam.id !== id),
         })),
+      getExamsByTestId: (testId) => {
+        const state = get();
+        return state.exams.filter(exam => 
+          exam.authorizedTestIds && exam.authorizedTestIds.includes(testId)
+        );
+      }
     }),
     {
       name: 'exam-storage',
