@@ -55,7 +55,7 @@ export default function CandidateDashboard() {
     }
 
     localStorage.setItem('currentExamId', exam.id);
-    navigate(`/candidate/exam/${exam.id}`);
+    navigate(`/exam/${exam.id}`);
   };
 
   return (
